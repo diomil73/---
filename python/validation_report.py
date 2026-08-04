@@ -9,7 +9,7 @@ import pandas as pd
 
 from import_data import load_data
 from metadata_engine import build_metadata
-from likert_engine import convert_value
+from likert_engine import convert_value, is_non_applicable
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -24,8 +24,14 @@ def create_validation_report():
 
     summary = pd.DataFrame(
         [
-            {"Έλεγχος": "Εγγραφές", "Τιμή": len(df)},
-            {"Έλεγχος": "Συνολικά πεδία", "Τιμή": len(df.columns)},
+            {
+                "Έλεγχος": "Εγγραφές",
+                "Τιμή": len(df),
+            },
+            {
+                "Έλεγχος": "Συνολικά πεδία",
+                "Τιμή": len(df.columns),
+            },
             {
                 "Έλεγχος": "Ερωτήσεις LIKERT",
                 "Τιμή": int((meta["Type"] == "LIKERT").sum()),
@@ -47,7 +53,12 @@ def create_validation_report():
 
     unmapped = meta.loc[
         meta["Section"] == "Λοιπά",
-        ["Question", "CleanQuestion", "Type", "Section"],
+        [
+            "Question",
+            "CleanQuestion",
+            "Type",
+            "Section",
+        ],
     ].copy()
 
     invalid_records = []
@@ -63,6 +74,9 @@ def create_validation_report():
 
         for row_number, original_value in df[question].items():
             if pd.isna(original_value):
+                continue
+
+            if is_non_applicable(original_value):
                 continue
 
             converted_value = convert_value(original_value)
@@ -87,7 +101,16 @@ def create_validation_report():
 
     section_rows = []
 
-    for section in sorted(meta["Section"].dropna().unique()):
+    sections = sorted(
+        meta.loc[
+            meta["Type"] == "LIKERT",
+            "Section",
+        ]
+        .dropna()
+        .unique()
+    )
+
+    for section in sections:
         questions = meta.loc[
             (meta["Section"] == section)
             & (meta["Type"] == "LIKERT"),
@@ -100,25 +123,28 @@ def create_validation_report():
             if question in df.columns
         ]
 
+        total_cells = len(df) * len(existing_questions)
+
         if existing_questions:
-            total_cells = len(df) * len(existing_questions)
             missing_cells = int(
                 df[existing_questions].isna().sum().sum()
             )
-
-            missing_percentage = (
-                round((missing_cells / total_cells) * 100, 2)
-                if total_cells
-                else 0
-            )
         else:
             missing_cells = 0
+
+        if total_cells:
+            missing_percentage = round(
+                (missing_cells / total_cells) * 100,
+                2,
+            )
+        else:
             missing_percentage = 0
 
         section_rows.append(
             {
                 "Ενότητα": section,
                 "Ερωτήσεις LIKERT": len(existing_questions),
+                "Συνολικές απαντήσεις": total_cells,
                 "Κενές απαντήσεις": missing_cells,
                 "Ποσοστό κενών": missing_percentage,
             }
@@ -162,7 +188,10 @@ def create_validation_report():
 
     print(f"Validation report δημιουργήθηκε: {OUTPUT_FILE}")
     print(f"Μη αντιστοιχισμένες ερωτήσεις: {len(unmapped)}")
-    print(f"Μη αναγνωρίσιμες απαντήσεις Likert: {len(invalid_likert)}")
+    print(
+        "Μη αναγνωρίσιμες απαντήσεις Likert: "
+        f"{len(invalid_likert)}"
+    )
 
 
 if __name__ == "__main__":
