@@ -11,6 +11,7 @@ from pathlib import Path
 from final_report import create_final_report
 from master_excel import create_master
 from question_analytics import create_question_analytics
+from question_charts import create_question_level_analytics
 from text_analytics import create_text_analytics
 
 
@@ -53,7 +54,7 @@ def run_step(step_number, title, function):
         print("\nΣΦΑΛΜΑ ΠΡΟΣΒΑΣΗΣ")
 
         print(
-            "Δεν ήταν δυνατή η αποθήκευση του αρχείου Excel."
+            "Δεν ήταν δυνατή η αποθήκευση αρχείου Excel."
         )
 
         print(
@@ -65,12 +66,9 @@ def run_step(step_number, title, function):
 
     except FileNotFoundError as error:
         print("\nΔΕΝ ΒΡΕΘΗΚΕ ΑΡΧΕΙΟ")
-
         print(error)
 
-        print(
-            "\nΈλεγξε ότι υπάρχει το αρχείο:"
-        )
+        print("\nΈλεγξε ότι υπάρχει το αρχείο:")
 
         print(
             PROJECT_ROOT
@@ -87,9 +85,7 @@ def run_step(step_number, title, function):
             f"{type(error).__name__}: {error}"
         )
 
-        print(
-            "\nΑναλυτικές πληροφορίες:"
-        )
+        print("\nΑναλυτικές πληροφορίες:")
 
         traceback.print_exc()
 
@@ -107,10 +103,7 @@ def list_created_files():
     print_separator()
 
     if not EXCEL_FOLDER.exists():
-        print(
-            "Ο φάκελος excel δεν υπάρχει."
-        )
-
+        print("Ο φάκελος excel δεν υπάρχει.")
         return
 
     excel_files = sorted(
@@ -118,10 +111,7 @@ def list_created_files():
     )
 
     if not excel_files:
-        print(
-            "Δεν βρέθηκαν αρχεία Excel."
-        )
-
+        print("Δεν βρέθηκαν αρχεία Excel.")
         return
 
     for file_path in excel_files:
@@ -171,6 +161,11 @@ def main():
         ),
         (
             4,
+            "Αναλυτική αξιολόγηση ανά ερώτημα",
+            create_question_level_analytics,
+        ),
+        (
+            5,
             "Δημιουργία τελικής αναφοράς",
             create_final_report,
         ),
