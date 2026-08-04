@@ -1,0 +1,8 @@
+{
+  "project": "ΣΑΠ-ΦΘ",
+  "version": "3.0.0",
+  "input_file": "data/forms_responses.xlsx",
+  "output_file": "excel/ΣΑΠ-ΦΘ_MASTER.xlsx",
+  "dashboard_sheet": "Dashboard",
+  "encoding": "utf-8"
+}
