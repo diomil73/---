@@ -3,101 +3,216 @@
 Metadata Engine
 """
 
-from question_classifier import classify_questions
+import pandas as pd
+
 from import_data import load_data
 
 
-SECTION_RULES = {
-
-    "Δημογραφικά": [
-        "ηλικ",
-        "φύλο",
-        "εξάμη",
-        "πανεπιστ",
+SECTION_QUESTIONS = {
+    "Α": [
+        "Υποδοχή",
+        "Ενημέρωση",
     ],
 
     "Β": [
-        "οργάν",
-        "πρόγραμμα",
+        "Οργάνωση προγράμματος",
+        "Κατανομή περιστατικών",
+        "Συνέπεια προγράμματος",
+        "Διαθεσιμότητα υπευθύνων",
+        "Συνολική οργάνωση",
     ],
 
     "Γ": [
-        "κλιν",
-        "θεραπε",
-        "κρουσ",
-        "υδροθεραπε",
-        "ρομποτ",
-        "ηλεκτροθεραπε",
-        "laser",
+        "Νευρολογική αποκατάσταση",
+        "Ορθοπαιδική αποκατάσταση",
+        "Γηριατρική αποκατάσταση",
+        "Ρομποτική αποκατάσταση",
+        "Θεραπευτική άσκηση",
+        "Υδροθεραπεία εντός πισίνας",
+        "Κρουστικά κύματα",
+        "Εκπαίδευση στη βάδιση",
+        "Αξιολόγηση ασθενών",
+        "Καταγραφή στον φάκελο ασθενούς",
+        "Παρουσίαση περιστατικών",
+        "Συμμετοχή στη διεπιστημονική ομάδα",
+        "Ανάπτυξη κλινικής σκέψης",
+        "Εφαρμογή επιστημονικής γνώσης",
+        "Ευκαιρίες πρακτικής εξάσκησης",
+        "Εποικοδομητική ανατροφοδότηση",
+        "Αυτονομία υπό επίβλεψη",
+        "Απόκτηση νέων δεξιοτήτων",
     ],
 
     "Δ": [
-        "υποδομ",
-        "εξοπλισ",
-        "χώρ",
+        "Σύγχρονος εξοπλισμός",
+        "Επάρκεια υλικών",
+        "Καθαριότητα",
+        "Ασφάλεια",
+        "Οργάνωση χώρων",
+        "Διαθεσιμότητα μηχανημάτων",
     ],
 
     "Ε": [
-        "ιατρ",
-        "νοσηλευ",
-        "συνεργ",
+        "Φυσικοθεραπευτές",
+        "Ιατροί",
+        "Εργοθεραπευτές",
+        "Λογοθεραπευτές",
+        "Ψυχολόγοι",
+        "Κοινωνικοί λειτουργοί",
+        "Διοικητικό προσωπικό",
     ],
 
     "ΣΤ": [
-        "υπεύθυ",
+        "Διαθεσιμότητα",
+        "Καθοδήγηση",
+        "Μεταδοτικότητα γνώσεων",
+        "Ανατροφοδότηση",
+        "Δικαιοσύνη",
+        "Υποστήριξη",
+        "Προσιτότητα",
+        "Ενδιαφέρον για τους φοιτητές",
     ],
 
     "Ζ": [
-        "προϊστ",
+        "Ηγεσία",
+        "Οργάνωση",
+        "Επαγγελματισμός",
+        "Δημιουργία θετικού κλίματος",
     ],
 
     "Η": [
-        "γενικ",
-        "ικανοπ",
+        "Ένιωσα μέλος της ομάδας.",
+        "Με αντιμετώπισαν με σεβασμό.",
+        "Μπορούσα να εκφράζω απορίες.",
+        "Ένιωθα ασφαλής να κάνω λάθος και να μάθω.",
+        "Η συνεργασία ήταν αποτελεσματική.",
     ],
 
-    "Ι": [
-        "σχό",
-        "παρατήρ",
-        "πρότα",
-    ]
+    "Θ": [
+        "Χώρος εργασίας",
+        "Αποδυτήρια",
+        "Χώρος διαλείμματος",
+        "Υγιεινή",
+        "Ωράριο",
+        "Πρόσβαση σε εκπαιδευτικό υλικό",
+    ],
 }
 
 
+DEMOGRAPHIC_QUESTIONS = {
+    "Timestamp",
+    "Πανεπιστήμιο",
+    "Έτος σπουδών",
+    "Διάρκεια πρακτικής",
+    "Περίοδος πρακτικής",
+}
+
+
+TEXT_QUESTIONS = {
+    "Ποια θεωρείτε ότι ήταν τα σημαντικότερα θετικά στοιχεία της πρακτικής σας άσκησης;",
+    "Ποιοι τομείς χρειάζονται βελτίωση;",
+    "Ποιες εκπαιδευτικές δραστηριότητες θα θέλατε να ενισχυθούν;",
+    "Υπάρχουν δραστηριότητες που θα θέλατε να προστεθούν;",
+    "Περιγράψτε μια εμπειρία που θεωρείτε ιδιαίτερα σημαντική κατά τη διάρκεια της πρακτικής σας.",
+    "Επιπλέον σχόλια ή προτάσεις.",
+}
+
+
+def clean_question(question):
+    """
+    Αφαιρεί κενά και αγκύλες από τα ονόματα των ερωτήσεων.
+    """
+
+    return str(question).strip().strip("[]").strip()
+
+
 def detect_section(question):
+    """
+    Επιστρέφει την ενότητα στην οποία ανήκει η ερώτηση.
+    """
 
-    q = question.lower()
+    cleaned = clean_question(question)
 
-    for section, words in SECTION_RULES.items():
+    if cleaned in DEMOGRAPHIC_QUESTIONS:
+        return "Δημογραφικά"
 
-        for word in words:
+    for section, questions in SECTION_QUESTIONS.items():
+        if cleaned in questions:
+            return section
 
-            if word in q:
-                return section
+    if cleaned in TEXT_QUESTIONS:
+        return "Ι"
+
+    if "Πόσο πιθανό είναι να προτείνατε" in cleaned:
+        return "Γενική αξιολόγηση"
 
     return "Λοιπά"
 
 
+def detect_type(question):
+    """
+    Καθορίζει τον τύπο της ερώτησης.
+    """
+
+    cleaned = clean_question(question)
+
+    if cleaned in DEMOGRAPHIC_QUESTIONS:
+        return "OTHER"
+
+    if cleaned in TEXT_QUESTIONS:
+        return "TEXT"
+
+    if "Πόσο πιθανό είναι να προτείνατε" in cleaned:
+        return "NPS"
+
+    for questions in SECTION_QUESTIONS.values():
+        if cleaned in questions:
+            return "LIKERT"
+
+    return "OTHER"
+
+
 def build_metadata():
+    """
+    Δημιουργεί το metadata table για όλες τις στήλες.
+    """
 
     df = load_data()
 
-    metadata = classify_questions(df.columns)
+    records = []
 
-    metadata["Section"] = metadata["Question"].apply(detect_section)
+    for question in df.columns:
+        question_type = detect_type(question)
+        section = detect_section(question)
 
-    metadata["Scored"] = metadata["Type"].isin(
-        [
-            "LIKERT",
-            "NPS",
-        ]
-    )
+        records.append({
+            "Question": question,
+            "CleanQuestion": clean_question(question),
+            "Type": question_type,
+            "Section": section,
+            "Scored": question_type in {"LIKERT", "NPS"},
+        })
 
-    return metadata
+    return pd.DataFrame(records)
 
 
 if __name__ == "__main__":
-
     meta = build_metadata()
 
-    print(meta)
+    print(
+        meta.groupby(
+            ["Section", "Type"]
+        ).size().to_string()
+    )
+
+    print()
+
+    print(
+        meta[
+            [
+                "Section",
+                "Type",
+                "Question",
+            ]
+        ].to_string(index=False)
+    )
